@@ -1,0 +1,111 @@
+---
+name: test-payment
+description: 测试支付功能（Mock和真实环境）
+---
+
+# 支付功能测试
+
+## Mock支付测试
+
+### 1. 使用Mock支付通道
+
+在开发环境，可以使用mock支付快速测试：
+
+```python
+# 创建订单时指定 payment_method = "mock"
+{
+  "items": [
+    {"product_id": 1, "quantity": 2}
+  ],
+  "payment_method": "mock"
+}
+```
+
+Mock支付会自动标记订单为已支付，无需真实支付流程。
+
+### 2. 模拟支付回调
+
+```bash
+curl -X POST http://localhost:8000/api/v1/payment/mock/notify \
+  -H "Content-Type: application/json" \
+  -d '{
+    "order_no": "ORDER123",
+    "transaction_no": "MOCK_TXN_001",
+    "amount": 100.00,
+    "status": "success"
+  }'
+```
+
+## 微信支付测试
+
+### 1. 配置沙箱环境
+
+在 `.env` 文件配置微信支付沙箱参数：
+```
+WECHAT_PAY_MCHID=你的商户号
+WECHAT_PAY_APPID=你的AppID
+WECHAT_PAY_PRIVATE_KEY=私钥路径
+WECHAT_PAY_CERT_SERIAL_NO=证书序列号
+WECHAT_PAY_APIV3_KEY=APIv3密钥
+```
+
+### 2. 创建支付
+
+```bash
+curl -X POST http://localhost:8000/api/v1/payment/wechat/create \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "order_id": 1
+  }'
+```
+
+返回支付二维码或JSAPI参数。
+
+### 3. 测试回调
+
+使用微信支付沙箱工具模拟回调。
+
+## 支付宝测试
+
+### 1. 配置沙箱环境
+
+在 `.env` 文件配置：
+```
+ALIPAY_APPID=你的AppID
+ALIPAY_PRIVATE_KEY=应用私钥
+ALIPAY_PUBLIC_KEY=支付宝公钥
+ALIPAY_SANDBOX=true
+```
+
+### 2. 创建支付
+
+```bash
+curl -X POST http://localhost:8000/api/v1/payment/alipay/create \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "order_id": 1
+  }'
+```
+
+返回支付链接，在浏览器打开。
+
+### 3. 测试账号
+
+访问支付宝开放平台获取沙箱测试账号。
+
+## 验证支付结果
+
+### 查询支付状态
+
+```bash
+curl http://localhost:8000/api/v1/payment/ORDER123/status \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+### 验证数据库
+
+- 检查 `orders` 表状态是否变为 `paid`
+- 检查 `transactions` 表是否有支付记录
+- 检查 `merchants` 表余额是否增加

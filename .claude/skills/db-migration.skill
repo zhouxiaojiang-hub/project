@@ -1,0 +1,76 @@
+---
+name: db-migration
+description: 数据库迁移操作
+---
+
+# 数据库迁移管理
+
+## 初始化Alembic（首次）
+
+```bash
+cd backend
+alembic init migrations
+```
+
+## 配置Alembic
+
+编辑 `alembic.ini`：
+```ini
+sqlalchemy.url = sqlite:///./street_vendor.db
+```
+
+编辑 `migrations/env.py`：
+```python
+from app.database import Base
+from app.models import *  # 导入所有模型
+
+target_metadata = Base.metadata
+```
+
+## 创建迁移脚本
+
+```bash
+# 自动生成迁移脚本
+alembic revision --autogenerate -m "描述变更内容"
+
+# 手动创建迁移脚本
+alembic revision -m "描述变更内容"
+```
+
+## 执行迁移
+
+```bash
+# 升级到最新版本
+alembic upgrade head
+
+# 升级到指定版本
+alembic upgrade <revision>
+
+# 降级一个版本
+alembic downgrade -1
+
+# 查看当前版本
+alembic current
+
+# 查看历史记录
+alembic history
+```
+
+## 常见场景
+
+### 添加新表
+1. 在 `app/models/` 创建新模型
+2. 在 `app/models/__init__.py` 导出
+3. 运行 `alembic revision --autogenerate -m "add new table"`
+4. 运行 `alembic upgrade head`
+
+### 修改字段
+1. 修改模型定义
+2. 运行 `alembic revision --autogenerate -m "modify field"`
+3. 检查生成的迁移脚本
+4. 运行 `alembic upgrade head`
+
+### 删除表
+1. 从代码中删除模型
+2. 运行 `alembic revision --autogenerate -m "drop table"`
+3. 运行 `alembic upgrade head`

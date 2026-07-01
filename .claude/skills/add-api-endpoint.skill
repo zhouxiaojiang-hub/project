@@ -1,0 +1,91 @@
+---
+name: add-api-endpoint
+description: 添加新的API接口端点
+---
+
+# 添加新API端点的标准流程
+
+## 1. 定义Pydantic Schema (backend/app/schemas/)
+
+创建请求和响应模型：
+
+```python
+# schemas/your_module.py
+from pydantic import BaseModel
+
+class YourRequest(BaseModel):
+    field1: str
+    field2: int
+
+class YourResponse(BaseModel):
+    id: int
+    data: str
+    
+    class Config:
+        from_attributes = True
+```
+
+## 2. 创建Service业务逻辑 (backend/app/services/)
+
+```python
+# services/your_service.py
+from sqlalchemy.orm import Session
+from app.models import YourModel
+
+def create_something(db: Session, data: dict):
+    obj = YourModel(**data)
+    db.add(obj)
+    db.commit()
+    db.refresh(obj)
+    return obj
+```
+
+## 3. 添加API路由 (backend/app/api/v1/)
+
+```python
+# api/v1/your_route.py
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+from app.database import get_db
+from app.deps import get_current_user
+from app.schemas.your_module import YourRequest, YourResponse
+from app.services.your_service import create_something
+
+router = APIRouter()
+
+@router.post("/your-endpoint", response_model=YourResponse)
+def create_endpoint(
+    data: YourRequest,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    result = create_something(db, data.dict())
+    return result
+```
+
+## 4. 注册路由到主应用
+
+在 `app/api/v1/router.py` 中引入并注册：
+
+```python
+from app.api.v1 import your_route
+
+router.include_router(your_route.router, prefix="/your-module", tags=["Your Module"])
+```
+
+## 5. 前端API封装 (frontend/src/api/)
+
+```typescript
+// api/yourModule.ts
+import client from './client'
+
+export const createSomething = async (data: YourRequest) => {
+  const response = await client.post('/api/v1/your-endpoint', data)
+  return response.data
+}
+```
+
+## 6. 测试
+
+- 访问 http://localhost:8000/docs 测试API
+- 使用前端调用验证
